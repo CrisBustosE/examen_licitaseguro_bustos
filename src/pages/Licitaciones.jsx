@@ -5,7 +5,7 @@ const Licitaciones = () => {
     // antes de conectarnos de verdad a la API de Mercado Público.
     const mockLicitaciones = [
         { CodigoExterno: 'LS001', Nombre: 'Construcción de Puente Peatonal', FechaCierre: '2026-11-15T15:00:00', Estado: 'Publicada' },
-        { CodigoExterno: 'LS002', Nombre: 'Suministro de Equipos Informáticos', FechaCierre: '2026-11-10T12:00:00', Estado: 'Cerrada' },
+        { CodigoExterno: 'LS002', Nombre: 'Suministro de Equipos Informáticos', FechaCierre: '2026-11-10T12:00:00', Estado: 'Pendiente' },
         { CodigoExterno: 'LS003', Nombre: 'Servicio de Limpieza de Oficinas', FechaCierre: '2026-11-20T18:00:00', Estado: 'Adjudicada' },
         { CodigoExterno: 'LS004', Nombre: 'Servicio de Limpieza de Oficinas', FechaCierre: '2026-10-29T18:00:00', Estado: 'Desierta' },
         { CodigoExterno: 'LS005', Nombre: 'Servicio de Limpieza de Oficinas', FechaCierre: '2026-11-20T18:00:00', Estado: 'Revocada' }
