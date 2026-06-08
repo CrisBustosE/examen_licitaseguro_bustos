@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { API_BASE_URL, API_TICKET } from '../utils/apiConfig';
 
+import UniversalModal from '../components/UniversalModal';
+
 const Licitaciones = () => {
     // Estados para el formulario
     const [fechaFiltro, setFechaFiltro] = useState('');
@@ -14,6 +16,11 @@ const Licitaciones = () => {
     // Estados para la paginación (Req. Tarea 3 del examen)
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+
+    // Estados para el modal universal
+    const [showModal, setShowModal] = useState(false);
+    const [detalleLic, setDetalleLic] = useState(null);
+    const [loadingModal, setLoadingModal] = useState(false);
 
     // ==========================================================
     // FUNCIÓN: Formatear fecha de YYYY-MM-DD a DDMMAAAA
@@ -33,8 +40,8 @@ const Licitaciones = () => {
             6: { nombre: 'Cerrada', color: 'secondary' },
             7: { nombre: 'Desierta', color: 'danger' },
             8: { nombre: 'Adjudicada', color: 'primary' },
-            15: { nombre: 'Revocada', color: 'danger' },
-            16: { nombre: 'Suspendida', color: 'warning text-dark' }
+            15: { nombre: 'Revocada', color: 'danger' }, // En la documentación aparece como 18 pero al consumir la API devuelve un 15
+            16: { nombre: 'Suspendida', color: 'warning text-dark' } // En la documentación aparece como 19 pero al consumir la API devuelve un 16
         };
         // Si la API devuelve un código raro, mostramos el número por defecto
         return estados[codigo] || { nombre: `Estado ${codigo}`, color: 'dark' };
@@ -124,6 +131,36 @@ const Licitaciones = () => {
             l = i;
         }
         return rangeWithDots;
+    };
+
+    // ==========================================================
+    // FUNCIÓN: Consumir detalle específico de una Licitación
+    // ==========================================================
+    const handleVerDetalles = async (codigoExterno) => {
+        setShowModal(true);
+        setLoadingModal(true);
+        setDetalleLic(null); // Limpiamos el detalle anterior
+
+        try {
+            // Agregamos un spinner en el Modal y forzamos un delay de 500ms para mostrarlo (ya que la API responde tan rapido que no se lograba apreciar)
+            await new Promise(resolve => setTimeout(resolve, 500));
+            // Usamos el endpoint de detalle del PDF de Apoyo
+            const endpoint = `${API_BASE_URL}/licitaciones.json?codigo=${codigoExterno}&ticket=${API_TICKET}`;
+            const response = await fetch(endpoint);
+
+            if (!response.ok) throw new Error('Error al obtener el detalle');
+
+            const data = await response.json();
+
+            if (data.Listado && data.Listado.length > 0) {
+                setDetalleLic(data.Listado[0]); // Guardamos la data completa
+            }
+        } catch (error) {
+            console.error(error);
+            setDetalleLic({ error: true }); // Marcamos que hubo un error
+        } finally {
+            setLoadingModal(false);
+        }
     };
 
     return (
@@ -230,7 +267,7 @@ const Licitaciones = () => {
                                                         </span>
                                                     </td>
                                                     <td className="text-center pe-4">
-                                                        <button className="btn btn-sm fw-semibold p-2 border-0 text-decoration-underline" style={{ color: '#1E3A8A' }}>
+                                                        <button className="btn btn-sm fw-semibold p-2 border-0 text-decoration-underline" style={{ color: '#1E3A8A' }} onClick={() => handleVerDetalles(lic.CodigoExterno)}>
                                                             Ver Detalles
                                                         </button>
                                                     </td>
@@ -265,7 +302,7 @@ const Licitaciones = () => {
                                                 <i className="fa-regular fa-calendar me-1"></i>
                                                 {lic.FechaCierre ? new Date(lic.FechaCierre).toLocaleDateString('es-CL') : 'N/A'}
                                             </small>
-                                            <button className="btn btn-sm fw-bold border-0" style={{ color: '#1E3A8A', backgroundColor: '#e2e8f0' }}>
+                                            <button className="btn btn-sm fw-bold border-0" style={{ color: '#1E3A8A', backgroundColor: '#e2e8f0' }} onClick={() => handleVerDetalles(lic.CodigoExterno)}>
                                                 Ver Detalles <i className="fa-solid fa-chevron-right ms-1 small"></i>
                                             </button>
                                         </div>
@@ -278,6 +315,9 @@ const Licitaciones = () => {
                     {/* CONTROLES DE PAGINACIÓN */}
                     {totalPages > 1 && (
                         <nav className="mt-4" aria-label="Navegación de páginas">
+                            <p className="text-muted small mb-2 text-center">
+                                Mostrando {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, licitaciones.length)} de {licitaciones.length} resultados
+                            </p>
                             <ul className="pagination justify-content-center shadow-sm flex-wrap">
                                 {/* Botón Anterior */}
                                 <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
@@ -316,6 +356,80 @@ const Licitaciones = () => {
                     )}
                 </>
             )}
+            {/* ========================================================== */}
+            {/* MODAL UNIVERSAL PARA DETALLES DE LICITACIÓN                */}
+            {/* ========================================================== */}
+            <UniversalModal
+                show={showModal}
+                title="Detalle de Licitación"
+                onClose={() => setShowModal(false)}
+            >
+                {loadingModal ? (
+                    <div className="text-center py-5">
+                        <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Cargando...</span>
+                        </div>
+                        <p className="mt-3 text-muted fw-semibold">Obteniendo información oficial...</p>
+                    </div>
+                ) : detalleLic?.error ? (
+                    <div className="alert alert-danger text-center">
+                        No se pudo cargar el detalle de esta licitación. Inténtalo más tarde.
+                    </div>
+                ) : detalleLic ? (
+                    <div>
+                        {/* Aquí se arman los detalles de la Licitación */}
+                        <h5 className="fw-bold mb-3">{detalleLic.Nombre}</h5>
+
+                        <div className="row gy-3 mb-4">
+                            <div className="col-12 col-md-6">
+                                <p className="mb-1 text-muted small">Código / ID</p>
+                                <p className="fw-medium mb-0">{detalleLic.CodigoExterno}</p>
+                            </div>
+                            <div className="col-12 col-md-6">
+                                <p className="mb-1 text-muted small">Organismo Comprador</p>
+                                <p className="fw-medium mb-0">{detalleLic.Comprador?.NombreOrganismo}</p>
+                            </div>
+                            <div className="col-12 col-md-6">
+                                <p className="mb-1 text-muted small">Fecha Publicación</p>
+                                <p className="fw-medium mb-0">
+                                    {detalleLic.Fechas?.FechaPublicacion ? new Date(detalleLic.Fechas.FechaPublicacion).toLocaleDateString('es-CL') : 'N/A'}
+                                </p>
+                            </div>
+                            <div className="col-12 col-md-6">
+                                <p className="mb-1 text-muted small">Monto Estimado</p>
+                                <p className="fw-medium mb-0">
+                                    {detalleLic.MontoEstimado ? `$${detalleLic.MontoEstimado.toLocaleString('es-CL')} ${detalleLic.Moneda}` : 'No especificado'}
+                                </p>
+                            </div>
+                        </div>
+                        {/* ========================================================== */}
+                        {/* EL TOQUE MAESTRO: Renderizado condicional si está Publicada */}
+                        {/* ========================================================== */}
+                        {detalleLic.CodigoEstado === 5 && (
+                            <div className="alert alert-info d-flex flex-column flex-md-row align-items-center justify-content-between mb-4 shadow-sm border-0" style={{ backgroundColor: '#e0f2fe', color: '#0284c7' }}>
+                                <div className="mb-2 mb-md-0">
+                                    <i className="fa-solid fa-circle-info me-2 fs-5"></i>
+                                    <span className="fw-medium">Esta licitación se encuentra abierta a postulaciones.</span>
+                                </div>
+                                <a
+                                    href={`https://www.mercadopublico.cl/fichaLicitacion.html?idLicitacion=${detalleLic.CodigoExterno}`} // Redirige a la licitación REAL
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn text-white fw-bold shadow-sm text-nowrap"
+                                    style={{ backgroundColor: '#0284c7' }}
+                                >
+                                    Ir a Postular <i className="fa-solid fa-arrow-up-right-from-square ms-2 small"></i>
+                                </a>
+                            </div>
+                        )}
+
+                        <h6 className="fw-bold mb-2">Descripción</h6>
+                        <p className="text-secondary" style={{ fontSize: '0.95rem' }}>
+                            {detalleLic.Descripcion || 'Sin descripción disponible.'}
+                        </p>
+                    </div>
+                ) : null}
+            </UniversalModal>
         </div>
     );
 };
