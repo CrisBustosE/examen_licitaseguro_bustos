@@ -5,24 +5,32 @@ const UniversalModal = ({ show, title, children, onClose }) => {
   const modalRef = useRef(null);
   const bsModalRef = useRef(null);
 
+  // Guardamos la función en una referencia 
+  // para que siempre esté actualizada sin disparar re-renderizados.
+  const onCloseRef = useRef(onClose);
+
   useEffect(() => {
-    // Inicializamos el modal de Bootstrap
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
     if (modalRef.current) {
-      bsModalRef.current = new Modal(modalRef.current, { 
-        backdrop: 'static', // Evita que se cierre al hacer clic afuera (opcional)
-        keyboard: false 
+      // Inicializamos sin 'static' para permitir clic afuera
+      bsModalRef.current = new Modal(modalRef.current);
+
+      // Usamos la referencia para ejecutar la función
+      modalRef.current.addEventListener('hide.bs.modal', () => {
+        onCloseRef.current();
       });
     }
-    
-    // Limpieza al desmontar
+
     return () => {
       if (bsModalRef.current) {
         bsModalRef.current.dispose();
       }
     };
-  }, []);
+  }, []); // Array vacío para que Bootstrap se inicialice solo una vez
 
-  // Escuchamos los cambios en la prop 'show' para abrir o cerrar
   useEffect(() => {
     if (show) {
       bsModalRef.current?.show();
@@ -32,11 +40,22 @@ const UniversalModal = ({ show, title, children, onClose }) => {
   }, [show]);
 
   return (
-    <div className="modal fade" ref={modalRef} tabIndex="-1" aria-hidden="true">
+    <div
+      id="universalModal"
+      className="modal fade"
+      ref={modalRef}
+      tabIndex="-1"
+      aria-labelledby="universalModalTitle"
+      aria-hidden={!show}
+    >
       <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div className="modal-content shadow">
           <div className="modal-header" style={{ backgroundColor: '#f8fafc' }}>
-            <h5 className="modal-title fw-bold" style={{ color: '#1E3A8A' }}>
+            <h5
+              className="modal-title fw-bold"
+              id="universalModalTitle"
+              style={{ color: '#1E3A8A' }}
+            >
               {title}
             </h5>
             <button type="button" className="btn-close" onClick={onClose} aria-label="Cerrar"></button>
@@ -45,7 +64,8 @@ const UniversalModal = ({ show, title, children, onClose }) => {
             {children}
           </div>
           <div className="modal-footer bg-light">
-            <button type="button" className="btn btn-secondary fw-semibold" onClick={onClose}>
+            <button type="button" className="btn btn-secondary fw-semibold" onClick={onClose} tabIndex={0}>
+              {/* Contraste #FFFFFF sobre btn-secondary #6C757D = 4.6:1, WCAG AA Aprobado */}
               Cerrar
             </button>
           </div>
