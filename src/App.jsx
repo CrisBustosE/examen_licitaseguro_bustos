@@ -18,7 +18,7 @@ const App = () => {
         <Navbar />
 
         {/* El contenido dinámico de las páginas crecerá para empujar el footer abajo */}
-        <main className="flex-grow-1 bg-light">
+        <main className="flex-grow-1 bg-light" aria-label="Contenido principal">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/licitaciones" element={<Licitaciones />} />

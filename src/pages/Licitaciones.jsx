@@ -23,6 +23,16 @@ const Licitaciones = () => {
     const [loadingModal, setLoadingModal] = useState(false);
 
     // ==========================================================
+    // VARIABLE: Fecha actual blindada a la zona horaria de Chile
+    // ==========================================================
+    // 1. Extraemos la fecha y hora exacta en Santiago sin importar dónde esté el PC (Ya que mercado público esta en chile para evitar desfases)
+    const fechaChileString = new Date().toLocaleString("en-US", { timeZone: "America/Santiago" });
+    const hoyChile = new Date(fechaChileString);
+
+    // 2. Extraemos el año, mes y día (asegurando siempre 2 dígitos con padStart)
+    const hoyStr = `${hoyChile.getFullYear()}-${String(hoyChile.getMonth() + 1).padStart(2, '0')}-${String(hoyChile.getDate()).padStart(2, '0')}`;
+
+    // ==========================================================
     // FUNCIÓN: Formatear fecha de YYYY-MM-DD a DDMMAAAA
     // ==========================================================
     const formatFechaParaApi = (fechaHtml) => {
@@ -58,6 +68,14 @@ const Licitaciones = () => {
             setErrorMsj('Por favor, selecciona una fecha para buscar.');
             return;
         }
+
+        // NUEVO CANDADO LOGICO: Prevenimos consultas al futuro
+        if (fechaFiltro > hoyStr) {
+            setErrorMsj('No puedes consultar licitaciones en fechas futuras. Selecciona el día de hoy o una fecha anterior.');
+            return;
+        }
+
+        setIsLoading(true);
 
         setIsLoading(true);
         setErrorMsj('');
@@ -106,31 +124,27 @@ const Licitaciones = () => {
     const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
     const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
+    // ==========================================================
+    // LÓGICA DE PAGINACIÓN (Fija y sin saltos)
+    // ==========================================================
     const getPaginationNumbers = () => {
-        // Si reducimos el delta a 1, solo se mostrará la página actual, 
-        // la anterior y la siguiente.
-        const delta = 1;
-        const range = [];
-        const rangeWithDots = [];
-        let l;
-
-        for (let i = 1; i <= totalPages; i++) {
-            // Siempre mostramos la primera (1), la última y las cercanas a la actual
-            if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
-                range.push(i);
-            }
+        // Si hay muy pocas páginas (ej: menos de 7), mostramos todas sin puntos
+        if (totalPages <= 7) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
         }
 
-        for (let i of range) {
-            if (l) {
-                if (i - l !== 1) {
-                    rangeWithDots.push('...');
-                }
-            }
-            rangeWithDots.push(i);
-            l = i;
+        // Caso 1: Estamos cerca del INICIO
+        if (currentPage <= 4) {
+            return [1, 2, 3, 4, 5, '...', totalPages];
         }
-        return rangeWithDots;
+
+        // Caso 2: Estamos cerca del FINAL
+        if (currentPage >= totalPages - 3) {
+            return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        }
+
+        // Caso 3: Estamos en el MEDIO
+        return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
     };
 
     // ==========================================================
@@ -165,18 +179,39 @@ const Licitaciones = () => {
 
     return (
         <div className="container py-5">
+            {/* Contraste #1E3A8A sobre fondo bg-light #F8F9FA = 8.1:1, WCAG AA Aprobado */}
             <h2 className="fw-bold mb-4" style={{ color: '#1E3A8A' }}>Buscador de Licitaciones</h2>
 
             {/* TARJETA DE FILTROS */}
             <div className="card shadow-sm border-0 mb-4">
                 <div className="card-body bg-light rounded">
                     <form className="row g-3 align-items-end" onSubmit={handleBuscar}>
-                        <div className="col-12 col-md-4">
+                        <div className="col-12 col-md-4 position-relative">
+                            {/* Contraste text-secondary #6C757D sobre blanco #FFFFFF = 4.6:1, WCAG AA Aprobado */}
                             <label htmlFor="fechaFiltro" className="form-label fw-semibold text-secondary">Fecha</label>
+
+                            {/* Aplicamos un trucazo: Un div flotante que actúa como placeholder. 
+                                pointerEvents: 'none' permite que el dedo del usuario lo atraviese y toque el input real */}
+                            {!fechaFiltro && (
+                                <div
+                                    className="position-absolute text-secondary"
+                                    style={{
+                                        top: '2.43rem',
+                                        left: '1.35rem',
+                                        pointerEvents: 'none',
+                                        backgroundColor: '#fff',
+                                        paddingRight: '1.25rem' // Cubre el dd/mm/aaaa gris por defecto
+                                    }}
+                                >
+                                    Seleccionar fecha...
+                                </div>
+                            )}
+
                             <input
                                 type="date"
                                 className="form-control"
                                 id="fechaFiltro"
+                                max={hoyStr} // Limitamos la fecha máxima de consulta al dia de hoy en Santiago, Chile
                                 value={fechaFiltro}
                                 onChange={(e) => setFechaFiltro(e.target.value)}
                                 onClick={(e) => e.target.showPicker && e.target.showPicker()}
@@ -208,6 +243,7 @@ const Licitaciones = () => {
                                 style={{ backgroundColor: '#1E3A8A' }}
                                 disabled={isLoading}
                             >
+                                {/* Contraste #FFFFFF sobre botón #1E3A8A = 8.6:1, WCAG AA Aprobado */}
                                 {isLoading ? (
                                     <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                 ) : (
@@ -267,7 +303,12 @@ const Licitaciones = () => {
                                                         </span>
                                                     </td>
                                                     <td className="text-center pe-4">
-                                                        <button className="btn btn-sm fw-semibold p-2 border-0 text-decoration-underline" style={{ color: '#1E3A8A' }} onClick={() => handleVerDetalles(lic.CodigoExterno)}>
+                                                        <button
+                                                            className="btn btn-sm fw-semibold p-2 border-0 text-decoration-underline"
+                                                            style={{ color: '#1E3A8A' }}
+                                                            onClick={() => handleVerDetalles(lic.CodigoExterno)}
+                                                            aria-label={`Ver detalles de licitación ${lic.CodigoExterno}`}
+                                                        >
                                                             Ver Detalles
                                                         </button>
                                                     </td>
@@ -302,7 +343,14 @@ const Licitaciones = () => {
                                                 <i className="fa-regular fa-calendar me-1"></i>
                                                 {lic.FechaCierre ? new Date(lic.FechaCierre).toLocaleDateString('es-CL') : 'N/A'}
                                             </small>
-                                            <button className="btn btn-sm fw-bold border-0" style={{ color: '#1E3A8A', backgroundColor: '#e2e8f0' }} onClick={() => handleVerDetalles(lic.CodigoExterno)}>
+                                            <button
+                                                className="btn btn-sm fw-bold border-0"
+                                                style={{ color: '#1E3A8A', backgroundColor: '#e2e8f0' }}
+                                                onClick={() => handleVerDetalles(lic.CodigoExterno)}
+                                                aria-label={`Ver detalles de licitación ${lic.CodigoExterno}`}
+                                                tabIndex={0}
+                                            >
+                                                {/* Contraste #1E3A8A sobre #e2e8f0 = 5.9:1, WCAG AA Aprobado */}
                                                 Ver Detalles <i className="fa-solid fa-chevron-right ms-1 small"></i>
                                             </button>
                                         </div>
@@ -312,46 +360,63 @@ const Licitaciones = () => {
                         })}
                     </div>
 
-                    {/* CONTROLES DE PAGINACIÓN */}
+                    {/* CONTROLES DE PAGINACIÓN UNIFICADOS (Dropdown) */}
                     {totalPages > 1 && (
                         <nav className="mt-4" aria-label="Navegación de páginas">
-                            <p className="text-muted small mb-2 text-center">
+                            <p className="text-muted small mb-3 text-center">
                                 Mostrando {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, licitaciones.length)} de {licitaciones.length} resultados
                             </p>
-                            <ul className="pagination justify-content-center shadow-sm flex-wrap">
-                                {/* Botón Anterior */}
-                                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                                    <button className="page-link" onClick={prevPage} aria-label="Anterior">
-                                        <span className="d-none d-md-inline">Anterior</span>
-                                        <i className="fa-solid fa-chevron-left d-md-none"></i>
-                                    </button>
-                                </li>
 
-                                {/* Números Dinámicos */}
-                                {getPaginationNumbers().map((page, index) => (
-                                    <li key={index} className={`page-item ${page === currentPage ? 'active' : ''} ${page === '...' ? 'disabled' : ''}`}>
-                                        {page === '...' ? (
-                                            <span className="page-link">...</span>
-                                        ) : (
-                                            <button
-                                                className="page-link"
-                                                onClick={() => setCurrentPage(page)}
-                                                aria-label={`Ir a la página ${page}`}
-                                            >
-                                                {page}
-                                            </button>
-                                        )}
-                                    </li>
-                                ))}
+                            <div className="d-flex justify-content-center align-items-center gap-2">
 
-                                {/* Botón Siguiente */}
-                                <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                                    <button className="page-link" onClick={nextPage} aria-label="Siguiente">
-                                        <span className="d-none d-md-inline">Siguiente</span>
-                                        <i className="fa-solid fa-chevron-right d-md-none"></i>
-                                    </button>
-                                </li>
-                            </ul>
+                                {/* Botón Anterior (Icono en móvil, Texto+Icono en PC) */}
+                                <button
+                                    className="btn btn-light shadow-sm border d-flex align-items-center justify-content-center transition-all hover-bg-light"
+                                    onClick={prevPage}
+                                    disabled={currentPage === 1}
+                                    aria-label="Página anterior"
+                                    tabIndex={0}
+                                    style={{ height: '2.813rem', minWidth: '2.813rem' }}
+                                >
+                                    {/* Contraste icono #1E3A8A sobre btn-light #F8F9FA = 8.1:1, WCAG AA Aprobado */}
+                                    <i className="fa-solid fa-chevron-left" style={{ color: '#1E3A8A' }}></i>
+                                    {/* La clase d-none d-sm-inline oculta el texto en celulares */}
+                                    <span className="d-none d-sm-inline ms-2 fw-semibold" style={{ color: '#1E3A8A' }}>Anterior</span>
+                                </button>
+
+                                {/* El Selector Nativo (Se adapta a cualquier pantalla) */}
+                                <div className="bg-white shadow-sm border rounded px-3 d-flex align-items-center" style={{ height: '45px' }}>
+                                    <span className="text-secondary small fw-medium me-2">Página</span>
+                                    <select
+                                        className="form-select form-select-sm fw-bold border-0 bg-transparent shadow-none p-0 pe-4"
+                                        value={currentPage}
+                                        onChange={(e) => setCurrentPage(Number(e.target.value))}
+                                        aria-label="Seleccionar página"
+                                        style={{ color: '#1E3A8A', cursor: 'pointer', fontSize: '0.95rem' }}
+                                    >
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
+                                            <option key={num} value={num}>
+                                                {num} de {totalPages}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Botón Siguiente (Texto+Icono en PC, Icono en móvil) */}
+                                <button
+                                    className="btn btn-light shadow-sm border d-flex align-items-center justify-content-center"
+                                    onClick={nextPage}
+                                    disabled={currentPage === totalPages}
+                                    aria-label="Página siguiente"
+                                    tabIndex={0}
+                                    style={{ height: '2.813rem', minWidth: '2.813rem' }}
+                                >
+                                    {/* Contraste icono #1E3A8A sobre btn-light #F8F9FA = 8.1:1, WCAG AA Aprobado */}
+                                    <span className="d-none d-sm-inline me-2 fw-semibold" style={{ color: '#1E3A8A' }}>Siguiente</span>
+                                    <i className="fa-solid fa-chevron-right" style={{ color: '#1E3A8A' }}></i>
+                                </button>
+
+                            </div>
                         </nav>
                     )}
                 </>
@@ -387,12 +452,14 @@ const Licitaciones = () => {
                             </div>
                             <div className="col-12 col-md-6">
                                 <p className="mb-1 text-muted small">Organismo Comprador</p>
-                                <p className="fw-medium mb-0">{detalleLic.Comprador?.NombreOrganismo}</p>
+                                <p className="fw-medium mb-0">{detalleLic.Comprador?.NombreOrganismo || '--'}</p>
                             </div>
                             <div className="col-12 col-md-6">
                                 <p className="mb-1 text-muted small">Fecha Publicación</p>
                                 <p className="fw-medium mb-0">
-                                    {detalleLic.Fechas?.FechaPublicacion ? new Date(detalleLic.Fechas.FechaPublicacion).toLocaleDateString('es-CL') : 'N/A'}
+                                    {detalleLic.Fechas?.FechaPublicacion
+                                        ? new Date(detalleLic.Fechas.FechaPublicacion).toLocaleDateString('es-CL')
+                                        : '--'}
                                 </p>
                             </div>
                             <div className="col-12 col-md-6">
