@@ -196,11 +196,14 @@ const Licitaciones = () => {
                                 <div
                                     className="position-absolute text-secondary"
                                     style={{
-                                        top: '2.43rem',
-                                        left: '1.35rem',
+                                        top: '2.3rem', 
+                                        left: '1.5rem', 
+                                        right: '2.6rem', 
                                         pointerEvents: 'none',
                                         backgroundColor: '#fff',
-                                        paddingRight: '1.25rem' // Cubre el dd/mm/aaaa gris por defecto
+                                        whiteSpace: 'nowrap', 
+                                        overflow: 'hidden', 
+                                        textOverflow: 'ellipsis' 
                                     }}
                                 >
                                     Seleccionar fecha...
