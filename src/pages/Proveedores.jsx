@@ -135,10 +135,10 @@ const Proveedores = () => {
         if (rutParaMath.length == 0) {
             setErrorRut('El campo RUT está vacío. Ingresa un RUT válido.');
             return;
-        }else if (rutParaMath.length < 8) {
+        } else if (rutParaMath.length < 8) {
             setErrorRut('El RUT es demasiado corto. Ingresa un RUT válido.');
             return;
-        } 
+        }
 
         // 3. Separar cuerpo del dígito verificador para la validación
         const cuerpo = rutParaMath.slice(0, -1);
@@ -227,7 +227,7 @@ const Proveedores = () => {
                                             type="submit"
                                             style={{ backgroundColor: '#1E3A8A' }}
                                         >
-                                             {/* Contraste #FFFFFF sobre botón #1E3A8A = 8.6:1, WCAG AA Aprobado */}
+                                            {/* Contraste #FFFFFF sobre botón #1E3A8A = 8.6:1, WCAG AA Aprobado */}
                                             {isLoading ? (
                                                 <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                             ) : (
@@ -235,6 +235,10 @@ const Proveedores = () => {
                                             )}
                                             Buscar
                                         </button>
+                                    </div>
+                                    {/* Ejemplo para prueba rápida*/}
+                                    <div className="form-text text-muted mt-2">
+                                        Ejemplo de proveedor registrado: 77.653.382-3
                                     </div>
                                     {/* Feedback visual de error nativo de Bootstrap */}
                                     {errorRut && <div className="invalid-feedback d-block fw-semibold">{errorRut}</div>}
