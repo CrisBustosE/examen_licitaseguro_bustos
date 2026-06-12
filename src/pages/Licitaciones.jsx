@@ -198,7 +198,7 @@ const Licitaciones = () => {
                                     style={{
                                         top: '2.3rem', 
                                         left: '1.5rem', 
-                                        right: '2.6rem', 
+                                        right: '2.69rem', 
                                         pointerEvents: 'none',
                                         backgroundColor: '#fff',
                                         whiteSpace: 'nowrap', 
