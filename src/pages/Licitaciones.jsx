@@ -269,8 +269,8 @@ const Licitaciones = () => {
             {/* ========================================================== */}
             {!isLoading && licitaciones.length > 0 && (
                 <>
-                    {/* VISTA DESKTOP Y TABLET: Tabla clásica (Oculta en móviles con d-none d-md-block) */}
-                    <div className="card shadow-sm border-0 d-none d-md-block">
+                    {/* VISTA DESKTOP: Tabla clásica (Oculta en móviles y tablets con d-none d-lg-block) */}
+                    <div className="card shadow-sm border-0 d-none d-lg-block">
                         <div className="card-body p-0">
                             <div className="table-responsive">
                                 <table className="table table-hover align-middle mb-0">
@@ -321,8 +321,8 @@ const Licitaciones = () => {
                         </div>
                     </div>
 
-                    {/* VISTA MÓVIL: Tarjetas (Oculta en escritorio con d-md-none) */}
-                    <div className="d-md-none">
+                    {/* VISTA MÓVIL Y TABLET: Tarjetas (Oculta en escritorio con d-lg-none) */}
+                    <div className="d-lg-none">
                         {currentItems.map((lic) => {
                             const estadoInfo = getEstadoInfo(lic.CodigoEstado);
                             return (
