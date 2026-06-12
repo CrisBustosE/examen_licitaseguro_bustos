@@ -20,8 +20,8 @@ const Footer = () => {
 
           {/* Logo Mercado Público Chile*/}
           <div className="col-12 col-md-6 text-md-end text-center">
-            <p className="mb-1 fw-semibold text-light">API Mercado Público</p>
-            <a href="https://www.chilecompra.cl/api/" target="_blank" rel="noopener noreferrer">
+            <a href="https://www.chilecompra.cl/api/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+              <p className="mb-1 fw-semibold text-light">API Mercado Público</p>
               <img
                 src={LogoChileCompra}
                 alt="Logo Mercado Público"
